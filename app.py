@@ -6,10 +6,10 @@ import io
 from datetime import datetime
 
 # Configuração da Página
-st.set_page_config(page_title="Portal Ls Negócios", layout="wide")
+st.set_page_config(page_title="Portal Ls Negócios", layout="wide") 
 
-st.title("🚀 Portal de Extração - Ls Negócios")
-st.markdown("Faça o upload dos contratos em PDF para gerar a planilha consolidada.")
+st.title("🚀 Portal de Extração - Ls Negócios - Estração de dados de contratos Loteamentos")
+st.markdown("Faça o upload dos contratos em PDF dos contratos de Loteamenos para gerar a planilha consolidada.")
 
 def extrair_dados_contrato(file):
     try:
