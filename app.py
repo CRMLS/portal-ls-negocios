@@ -5,12 +5,33 @@ import pandas as pd
 import io
 from datetime import datetime
 
-# Configuração da Página
+# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Portal Ls Negócios", layout="wide") 
 
-st.title("🚀 Portal de Extração - Ls Negócios - Estração de dados de contratos Loteamentos")
-st.markdown("Faça o upload dos contratos em PDF dos contratos de Loteamenos para gerar a planilha consolidada.")
+# --- FUNÇÃO DE LOGIN ---
+def check_password():
+    """Retorna True se o usuário inseriu a senha correta."""
+    def password_entered():
+        # Verificação da senha
+        if st.session_state["password"] == "ls2026":  # <--- VOCÊ PODE ALTERAR SUA SENHA AQUI
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
 
+    if "password_correct" not in st.session_state:
+        st.title("🔒 Acesso Restrito - LS Negócios")
+        st.text_input("Digite a senha para acessar o portal:", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.title("🔒 Acesso Restrito - LS Negócios")
+        st.text_input("Digite a senha para acessar o portal:", type="password", on_change=password_entered, key="password")
+        st.error("😕 Senha incorreta. Tente novamente.")
+        return False
+    else:
+        return True
+
+# --- FUNÇÃO DE EXTRAÇÃO (Sua lógica de loteamentos) ---
 def extrair_dados_contrato(file):
     try:
         with pdfplumber.open(file) as pdf:
@@ -46,7 +67,6 @@ def extrair_dados_contrato(file):
             else:
                 dados[campo] = "Não encontrado"
 
-        # Lógica especial para Sexo
         if "feminino" in texto.lower(): dados["Sexo"] = "feminino"
         elif "masculino" in texto.lower(): dados["Sexo"] = "masculino"
         else: dados["Sexo"] = "Não encontrado"
@@ -55,30 +75,41 @@ def extrair_dados_contrato(file):
     except Exception as e:
         return {"Arquivo": file.name, "Erro": str(e)}
 
-# Área de Upload
-arquivos_subidos = st.file_uploader("Escolha os contratos (PDF)", type="pdf", accept_multiple_files=True)
+# --- EXECUÇÃO DO PORTAL (Conteúdo Protegido) ---
+if check_password():
+    # Barra lateral com opção de Sair
+    if st.sidebar.button("Sair / Bloquear"):
+        st.session_state["password_correct"] = False
+        st.rerun()
 
-if arquivos_subidos:
-    lista_resultados = []
-    with st.spinner('Processando contratos...'):
-        for arq in arquivos_subidos:
-            resultado = extrair_dados_contrato(arq)
-            lista_final = lista_resultados.append(resultado)
-    
-    df = pd.DataFrame(lista_resultados)
-    
-    # Exibe na tela
-    st.success(f"{len(arquivos_subidos)} arquivos processados com sucesso!")
-    st.dataframe(df)
+    st.title("🚀 Portal de Extração - Ls Negócios")
+    st.subheader("Extração de dados de contratos de Loteamentos")
+    st.markdown("Faça o upload dos contratos em PDF para gerar a planilha consolidada.")
 
-    # Botão de Download
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False)
-    
-    st.download_button(
-        label="📥 Baixar Planilha Excel",
-        data=output.getvalue(),
-        file_name="Relatorio_Ls_Negocios.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    # Área de Upload
+    arquivos_subidos = st.file_uploader("Escolha os contratos (PDF)", type="pdf", accept_multiple_files=True)
+
+    if arquivos_subidos:
+        lista_resultados = []
+        with st.spinner('Processando contratos...'):
+            for arq in arquivos_subidos:
+                resultado = extrair_dados_contrato(arq)
+                lista_resultados.append(resultado)
+        
+        df = pd.DataFrame(lista_resultados)
+        
+        # Exibe na tela
+        st.success(f"{len(arquivos_subidos)} arquivos processados com sucesso!")
+        st.dataframe(df)
+
+        # Botão de Download
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+        
+        st.download_button(
+            label="📥 Baixar Planilha Excel",
+            data=output.getvalue(),
+            file_name="Relatorio_Ls_Negocios.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
